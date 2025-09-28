@@ -22,23 +22,16 @@ function Signup() {
 
   try {
     const userData = await handleSignUp(input.email, input.password, {
-      username: input.username,
-      role: "Super Admin",
-    });
+  username: input.username,
+  role: "admin",
+});
+dispatch(setUser({
+  uid: userData.uid,
+  email: userData.email,
+  displayName: input.username,
+  role: userData.role || "admin",
+}));
 
-    console.log("User signed up:", userData);
-
-    
-    const user = userData.user || userData;
-    dispatch(//redux
-      setUser({
-        uid: user.uid,
-        email: user.email,
-        displayName: input.username, 
-        role: "Super Admin",
-        
-      })
-    );
 
     
     navigate("/dashboard");

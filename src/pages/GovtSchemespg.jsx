@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { MdCampaign } from "react-icons/md";
 import { FaPlus } from "react-icons/fa";
 import { FiSearch } from "react-icons/fi";
@@ -6,6 +6,8 @@ import Govtcard from "../components/GovtSchemeCardpg";
 import Addscheme from "../components/AddGovtSchemeCardpg";
 import govt from "../assets/images/govt.png";
 import { getAllData, deleteData } from "../Helper/FirebaseHelperpg";
+import { db } from "../../firebase"; 
+import { collection, onSnapshot } from "firebase/firestore";
 
 function GovtScheme() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -13,20 +15,26 @@ function GovtScheme() {
   const [schemes, setSchemes] = useState([]);
   const [selectedScheme, setSelectedScheme] = useState(null);
 
-  // Fetch schemes
-  useEffect(() => {
-    const fetchSchemes = async () => {
-      try {
-        const data = await getAllData("govtSchemes");
-        setSchemes(data || []);
-      } catch (error) {
-        console.error("Error fetching schemes:", error);
-      }
-    };
-    fetchSchemes();
+  
+  const fetchSchemes = useCallback(async () => {
+    try {
+      const data = await getAllData("govtSchemes");
+      setSchemes(data || []);
+    } catch (error) {
+      console.error("Error fetching schemes:", error);
+    }
   }, []);
 
-  // Active or non-active
+  // Real-time listener
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, "govtSchemes"), async () => {
+      await fetchSchemes(); 
+    });
+
+    return () => unsub(); 
+  }, [fetchSchemes]);
+
+  // Active or non-active 
   const now = new Date();
   const enrichedSchemes = schemes.map((s) => {
     const endDate = s.endDate?.toDate ? s.endDate.toDate() : new Date(s.endDate);
@@ -40,12 +48,19 @@ function GovtScheme() {
 
   const totalSchemes = enrichedSchemes.length;
   const activeSchemes = enrichedSchemes.filter((s) => s.isActive).length;
+
+  // Delete and auto-refresh 
   const handleDeleteScheme = async (id) => {
     if (window.confirm("Are you sure you want to delete this scheme?")) {
-      await deleteData("govtSchemes", id);   // remove from Firebase
-      setSchemes((prev) => prev.filter((s) => s.id !== id)); // remove from UI
+      try {
+        await deleteData("govtSchemes", id);
+        
+      } catch (error) {
+        console.error("Error deleting scheme:", error);
+      }
     }
   };
+
   return (
     <div className="flex flex-col min-h-screen w-full">
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
@@ -123,7 +138,6 @@ function GovtScheme() {
                     }}
                     onDelete={() => handleDeleteScheme(scheme.id)}
                   />
-
                 </div>
               );
             })
@@ -133,7 +147,7 @@ function GovtScheme() {
         </div>
       </div>
 
-      {/* Modal rendered once at parent level */}
+      {/* Modal */}
       <Addscheme
         isOpen={showaddscheme}
         onClose={() => {
@@ -141,10 +155,8 @@ function GovtScheme() {
           setSelectedScheme(null);
         }}
         schemeData={selectedScheme}
-        onUpdate={(updatedData) => {
-          setSchemes((prev) =>
-            prev.map((s) => (s.id === updatedData.id ? updatedData : s))
-          );
+        onUpdate={() => {
+          
         }}
       />
     </div>

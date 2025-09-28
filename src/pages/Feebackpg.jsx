@@ -7,15 +7,15 @@ import {
   getDocs,
   deleteDoc,
   doc,
-  updateDoc
+  updateDoc,
+  onSnapshot,
 } from "firebase/firestore";
 
 import { db } from "../../firebase";
 import FeedCard from "../components/FeedbackCardpg";
 import Filterbtn from "../components/FilterBtnpg";
-import { getAllData } from "../Helper/FirebaseHelperpg";
 
-//  Fetch user by UID
+// 🔹 Fetch user by UID
 async function getUserByUID(uid) {
   try {
     const q = query(collection(db, "users"), where("uid", "==", uid));
@@ -30,40 +30,31 @@ async function getUserByUID(uid) {
   }
 }
 
-
-
 function Feedback() {
   const [feedbacks, setFeedbacks] = useState([]);
   const [filter, setFilter] = useState("All");
 
-  //delete handler
+  // 🔹 Delete handler
   const handleDelete = async (id) => {
     try {
       const confirmDelete = window.confirm("Are you sure you want to delete this feedback?");
       if (!confirmDelete) return;
 
       await deleteDoc(doc(db, "feedbacks", id));
-      setFeedbacks((prev) => prev.filter((fb) => fb.id !== id)); // update UI
-
       alert("Feedback deleted successfully ✅");
     } catch (error) {
       console.error("Error deleting feedback:", error);
       alert("❌ Failed to delete feedback");
     }
   };
+
+  // 🔹 Reply handler
   const handleReply = async (id, replyText) => {
     try {
       await updateDoc(doc(db, "feedbacks", id), {
         adminReply: replyText,
         repliedAt: new Date().toISOString(),
       });
-
-      setFeedbacks((prev) =>
-        prev.map((fb) =>
-          fb.id === id ? { ...fb, adminReply: replyText } : fb
-        )
-      );
-
       alert("Reply sent successfully ✅");
     } catch (error) {
       console.error("Error sending reply:", error);
@@ -71,12 +62,18 @@ function Feedback() {
     }
   };
 
-  //  Fetch feedback with user details
+  // 🔹 Live feedback fetch
   useEffect(() => {
-    const fetchFeedbacks = async () => {
-      try {
-        const fbData = await getAllData("feedbacks");
+    const q = query(collection(db, "feedbacks"));
 
+    const unsubscribe = onSnapshot(q, async (snapshot) => {
+      try {
+        const fbData = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
+        // add user details
         const enriched = await Promise.all(
           fbData.map(async (fb) => {
             const user = fb.userID ? await getUserByUID(fb.userID) : null;
@@ -91,14 +88,14 @@ function Feedback() {
 
         setFeedbacks(enriched);
       } catch (error) {
-        console.error("Error fetching feedbacks:", error);
+        console.error("Error enriching feedback:", error);
       }
-    };
+    });
 
-    fetchFeedbacks();
+    return () => unsubscribe(); // cleanup
   }, []);
 
-  //  Filter by role
+  // 🔹 Filter by role
   const filteredFeedbacks =
     filter === "All" ? feedbacks : feedbacks.filter((fb) => fb.role === filter);
 
@@ -140,7 +137,6 @@ function Feedback() {
                 onDelete={handleDelete}
                 onReply={handleReply}
               />
-
             ))
           ) : (
             <p className="text-gray-500 text-center w-full">

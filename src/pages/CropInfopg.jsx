@@ -1,3 +1,4 @@
+// src/pages/Cropinfo.jsx
 import { useState, useEffect } from "react";
 import { CiSearch } from "react-icons/ci";
 import { FaPlus } from "react-icons/fa";
@@ -6,6 +7,8 @@ import Filterbtn from "../components/FilterBtnpg";
 import CropCard from "../components/CropInfoCardpg";
 import AddCropinfo from "../components/AddCropInfopg";
 import { getAllData, deleteData } from "../Helper/FirebaseHelperpg";
+import { db } from "../../firebase";
+import { collection, onSnapshot } from "firebase/firestore";
 
 import a from "../assets/images/a.png";
 
@@ -19,20 +22,21 @@ function Cropinfo() {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedSeason, setSelectedSeason] = useState("All");
 
-  // Fetch cropInfo from Firestore
+
   useEffect(() => {
-    const fetchCrops = async () => {
+    const unsub = onSnapshot(collection(db, "cropInfo"), async () => {
       try {
         const data = await getAllData("cropInfo");
         setCrops(data || []);
       } catch (error) {
         console.error("Error fetching crops:", error);
       }
-    };
-    fetchCrops();
+    });
+
+    return () => unsub();
   }, []);
 
-  // Filter crops safely
+  // Filter crops 
   const filteredCrops = crops.filter((crop) => {
     const name = crop?.name || "";
     const category = crop?.category || "";
@@ -49,12 +53,10 @@ function Cropinfo() {
     return matchesSearch && matchesCategory && matchesSeason;
   });
 
-  const totalCrops = crops.length;
-  const seasonalCrops = filteredCrops.length;
   const handleDeleteCrop = async (id) => {
     if (window.confirm("Are you sure you want to delete this crop?")) {
       await deleteData("cropInfo", id);   // remove from Firebase
-      setCrops((prev) => prev.filter((c) => c.id !== id)); // remove from UI
+      
     }
   };
 
@@ -153,7 +155,6 @@ function Cropinfo() {
                   }}
                   onDelete={() => handleDeleteCrop(crop.id)}
                 />
-
               </div>
             ))
           ) : (
@@ -164,7 +165,7 @@ function Cropinfo() {
         </div>
       </div>
 
-      {/* Modal rendered once at parent level */}
+      {/* Modal */}
       <AddCropinfo
         isOpen={showAddCrop}
         onClose={() => {
@@ -172,11 +173,6 @@ function Cropinfo() {
           setSelectedCrop(null);
         }}
         cropData={selectedCrop}
-        onUpdate={(updatedData) => {
-          setCrops((prev) =>
-            prev.map((c) => (c.id === updatedData.id ? updatedData : c))
-          );
-        }}
       />
     </div>
   );

@@ -1,58 +1,29 @@
 import { useState, useEffect } from "react";
-import { FaSave, FaSignOutAlt, FaTimes, FaUserPlus } from "react-icons/fa";
+import { FaSave, FaSignOutAlt, FaTimes } from "react-icons/fa";
 import { BsEye, BsEyeSlash } from "react-icons/bs";
 import { useNavigate } from "react-router-dom";
 
 import imgDefault from "../assets/images/img.png";
-import AddAdminModal from "../components/AddAdminpg";
 import { auth } from "../../firebase";
-import { onAuthStateChanged } from "firebase/auth";
 import {
   getDataById,
   updateData,
   uploadImageToCloudinary,
   logout,
 } from "../Helper/FirebaseHelperpg";
-import { handleSignUp,getAllData ,deleteData} from "../Helper/FirebaseHelperpg";
+
 function Setting() {
   const [formData, setFormData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-  const [showAddAdminModal, setShowAddAdminModal] = useState(false);
 
   const navigate = useNavigate();
-//add
-const handleAddAdmin = async (e) => {
-  e.preventDefault();
-  const formData = new FormData(e.target);
-  const name = formData.get("name");
-  const email = formData.get("email");
-  const role = formData.get("role");
-  const password = formData.get("password");
-
-  try {
-    //handleSignUp 
-    await handleSignUp(email, password, {
-      username: name,
-      role,
-      image: "",
-    });
-
-    alert("✅ New admin added successfully!");
-    setShowAddAdminModal(false);
-
-  } catch (error) {
-    console.error("Error adding admin:", error);
-    alert("❌ Failed to add admin: " + error.message);
-  }
-};
-
 
   // Fetch admin data
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user?.uid) {
         try {
           const adminData = await getDataById("users", user.uid);
@@ -96,23 +67,8 @@ const handleAddAdmin = async (e) => {
     await logout();
     alert("Logged out successfully!");
     setShowLogoutModal(false);
-    navigate("/login");
+    navigate("/");
   };
-
-  const [admins, setAdmins] = useState([]);
-
-useEffect(() => {
-  const fetchAdmins = async () => {
-    const users = await getAllData("users");
-   const onlyAdmins = users.filter(
-  u => u.role?.toLowerCase().replace(/\s/g, "") === "admin"
-);
-
-    setAdmins(onlyAdmins);
-  };
-  fetchAdmins();
-}, []);
-
 
   if (loading) {
     return (
@@ -129,18 +85,6 @@ useEffect(() => {
       </div>
     );
   }
-  const handleRemoveAdmin = async (id) => {
-  if (!window.confirm("Are you sure you want to remove this admin?")) return;
-
-  try {
-    await deleteData("users", id); // remove from Firestore
-    setAdmins((prev) => prev.filter((a) => a.id !== id)); // update state instantly
-    alert("✅ Admin removed successfully!");
-  } catch (error) {
-    console.error("Error removing admin:", error);
-    alert("❌ Failed to remove admin: " + error.message);
-  }
-};
 
   return (
     <div className="flex flex-col lg:flex-row min-h-screen w-full bg-[#f5f5f5]">
@@ -225,77 +169,16 @@ useEffect(() => {
               </div>
             </div>
 
-            {/* Buttons */}
-           <div className="mt-6 flex flex-col sm:flex-row justify-between gap-2">
- {formData.role?.toLowerCase().replace(/\s/g, "") === "superadmin" && (
-    <button
-      onClick={() => setShowAddAdminModal(true)}
-      className="bg-[#006644] text-white px-5 py-2 rounded-md flex items-center justify-center gap-2 hover:bg-green-100 hover:text-[#006644] text-sm w-full sm:w-auto"
-    >
-      <FaUserPlus /> Add Admin
-    </button>
-  )}
-  <button
-    onClick={() => setShowLogoutModal(true)}
-    className="bg-red-600 text-white px-5 py-2 rounded-md flex items-center justify-center gap-2 hover:bg-red-700 text-sm w-full sm:w-auto"
-  >
-    <FaSignOutAlt /> Logout
-  </button>
-</div>
-
+            {/* Logout Button */}
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowLogoutModal(true)}
+                className="bg-red-600 text-white px-5 py-2 rounded-md flex items-center justify-center gap-2 hover:bg-red-700 text-sm w-full sm:w-auto"
+              >
+                <FaSignOutAlt /> Logout
+              </button>
+            </div>
           </div>
-
-          {/* Other Admins Table */}
-        {formData.role?.toLowerCase().replace(/\s/g, "") === "superadmin" && (
-  <div className="bg-white rounded-xl shadow p-6 w-full">
-    <h2 className="text-lg sm:text-xl font-semibold text-gray-800 mb-4">
-      Other Admins
-    </h2>
-    <div className="overflow-x-auto">
-      <table className="min-w-full border border-gray-200 text-sm rounded-lg overflow-hidden">
-        <thead>
-          <tr className="bg-gray-100 text-gray-700">
-            <th className="px-4 py-3 border">#</th>
-            <th className="px-4 py-3 border">Name</th>
-            <th className="px-4 py-3 border">Email</th>
-            <th className="px-4 py-3 border">Role</th>
-            <th className="px-4 py-3 border text-center">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {admins.length > 0 ? (
-            admins.map((admin, idx) => (
-              <tr key={admin.id || idx} className="hover:bg-gray-50 transition">
-                <td className="px-4 py-2 border text-center">{idx + 1}</td>
-                <td className="px-4 py-2 border font-medium">{admin.username}</td>
-                <td className="px-4 py-2 border text-gray-600">{admin.email}</td>
-                <td className="px-4 py-2 border">{admin.role}</td>
-                <td className="px-4 py-2 border text-center">
-                  <button
-                    onClick={() => handleRemoveAdmin(admin.id)}
-                    className="px-3 py-1 bg-red-600 text-white rounded-md text-xs hover:bg-red-700"
-                  >
-                    Remove
-                  </button>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td colSpan="5" className="px-4 py-3 text-center text-gray-500">
-                No other admins found
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  </div>
-)}
-
-
-            
-         
         </div>
       </div>
 
@@ -327,11 +210,6 @@ useEffect(() => {
             </div>
           </div>
         </div>
-      )}
-
-      {/* Add Admin Modal */}
-      {showAddAdminModal && (
-        <AddAdminModal onClose={() => setShowAddAdminModal(false)} onSubmit={handleAddAdmin} />
       )}
     </div>
   );

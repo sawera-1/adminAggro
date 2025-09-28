@@ -16,6 +16,7 @@ import Signup from "./pages/Signuppg";
 // Protected Route wrapper
 function ProtectedRoute({ children }) {
   const user = useSelector((state) => state.home.user);
+  // alert(user )
   return user?.uid ? children : <Navigate to="/login" replace />;
 }
 
@@ -24,8 +25,8 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         {/* Public Routes */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Signup />} />
+        <Route path="/" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
 
         {/* Protected/Admin Routes */}
         <Route

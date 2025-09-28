@@ -11,7 +11,7 @@ function CropCard({
   yieldAmount,
   marketPrice,
   image,
-  url,  
+  url,
   onEdit,
   onDelete,
 }) {
@@ -57,35 +57,43 @@ function CropCard({
 
         <div className="flex justify-between">
           <span>Duration</span>
-          <span className="font-bold">{duration}</span>
+          <span className="font-bold line-clamp-1">{duration}</span>
         </div>
 
         <div className="flex justify-between">
           <span>Soil Type</span>
-          <span className="font-bold">{soilType}</span>
+          <span className="font-bold line-clamp-1">{soilType}</span>
         </div>
 
         <div className="flex justify-between">
           <span>Water Requirement</span>
-          <span className="font-bold">{waterRequirement}</span>
+          <span className="font-bold line-clamp-1">{waterRequirement}</span>
         </div>
 
         <div className="flex justify-between">
           <span>Yield</span>
-          <span className="font-bold">{yieldAmount}</span>
+          <span className="font-bold line-clamp-1">{yieldAmount}</span>
         </div>
 
         <div className="flex justify-between">
           <span>Market Price</span>
-          <span className="text-green-700 font-bold">{marketPrice}</span>
+          <span className="text-green-700 font-bold line-clamp-1">
+            {marketPrice}
+          </span>
         </div>
-        <div className="flex justify-between">
-          <span>url</span>
-          <span className="font-bold">{url}</span>
+
+        <div>
+          <span className="block text-gray-500">URL</span>
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 underline font-bold text-sm mt-1 break-all line-clamp-1"
+          >
+            {url}
+          </a>
         </div>
       </div>
-      
-
 
       {/* Action Buttons */}
       <div className="mt-6 flex justify-center flex-wrap gap-3">

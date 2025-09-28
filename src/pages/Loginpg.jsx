@@ -23,17 +23,14 @@ function Login() {
     setMessage("");
 
     try {
-      const userData = await login(input.email, input.password);
+    const userData = await login(input.email, input.password); // this now checks hashed password
+dispatch(setUser({
+  uid: userData.uid,
+  email: userData.email,
+  displayName: userData.displayName || "",
+  role: userData.role || "user",
+}));
 
-      const user = userData.user || userData;
-      dispatch(//redux
-        setUser({
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName || "",
-          role: "admin",
-        })
-      );
 
       navigate("/dashboard");
     } catch (err) {

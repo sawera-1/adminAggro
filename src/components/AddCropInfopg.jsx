@@ -1,6 +1,10 @@
 import { useState, useEffect } from "react";
 import { FaTimes } from "react-icons/fa";
-import { addData, updateData } from "../Helper/FirebaseHelperpg";
+import {
+  addData,
+  updateData,
+  uploadImageToCloudinary,
+} from "../Helper/FirebaseHelperpg";
 
 function AddCropinfo({ isOpen, onClose, cropData = null, onUpdate }) {
   const [formData, setFormData] = useState({
@@ -13,13 +17,15 @@ function AddCropinfo({ isOpen, onClose, cropData = null, onUpdate }) {
     waterRequirement: "",
     yieldAmount: "",
     marketPrice: "",
-    url:""
+    url: "",
   });
 
   const [image, setImage] = useState(null);
+  const [preview, setPreview] = useState(null); 
   const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
 
-  // Prefill form 
+  // Prefill form
   useEffect(() => {
     if (cropData) {
       setFormData({
@@ -32,8 +38,10 @@ function AddCropinfo({ isOpen, onClose, cropData = null, onUpdate }) {
         waterRequirement: cropData.waterRequirement || "",
         yieldAmount: cropData.yieldAmount || "",
         marketPrice: cropData.marketPrice || "",
-        url:cropData.url ||""
+        url: cropData.url || "",
       });
+      setImage(cropData.image || null);
+      setPreview(cropData.image || null); 
     } else {
       setFormData({
         name: "",
@@ -45,10 +53,12 @@ function AddCropinfo({ isOpen, onClose, cropData = null, onUpdate }) {
         waterRequirement: "",
         yieldAmount: "",
         marketPrice: "",
-        url:""
+        url: "",
       });
       setImage(null);
+      setPreview(null);
     }
+    setErrors({});
   }, [cropData]);
 
   const handleChange = (e) => {
@@ -56,20 +66,69 @@ function AddCropinfo({ isOpen, onClose, cropData = null, onUpdate }) {
   };
 
   const handleImageChange = (e) => {
-    setImage(e.target.files[0]);
+    const file = e.target.files[0];
+    setImage(file);
+    if (file) {
+      setPreview(URL.createObjectURL(file)); 
+    }
+  };
+
+  // Validation
+  const validateForm = () => {
+    let newErrors = {};
+
+    if (!formData.name.trim()) newErrors.name = "Crop name is required.";
+    if (!formData.scientificName.trim())
+      newErrors.scientificName = "Scientific name is required.";
+    if (!formData.category.trim()) newErrors.category = "Category is required.";
+    if (!formData.season.trim()) newErrors.season = "Season is required.";
+    if (!formData.duration.trim()) newErrors.duration = "Duration is required.";
+    if (!formData.soilType.trim()) newErrors.soilType = "Soil type is required.";
+    if (!formData.waterRequirement.trim())
+      newErrors.waterRequirement = "Water requirement is required.";
+    if (!formData.yieldAmount.trim())
+      newErrors.yieldAmount = "Yield amount is required.";
+    if (!formData.marketPrice.trim())
+      newErrors.marketPrice = "Market price is required.";
+
+    if (!formData.url) {
+      newErrors.url = "URL is required.";
+    } else {
+      try {
+        new URL(formData.url);
+      } catch {
+        newErrors.url = "Please enter a valid URL.";
+      }
+    }
+
+    if (!image && !cropData) newErrors.image = "You must upload an image.";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async () => {
+    if (!validateForm()) return;
+
     setLoading(true);
-    const dataToSave = { ...formData, updatedAt: new Date() };
+
     try {
+      let imageUrl = cropData?.image || "";
+      if (image && typeof image !== "string") {
+        imageUrl = await uploadImageToCloudinary(image);
+      }
+
+      const dataToSave = {
+        ...formData,
+        image: imageUrl,
+        updatedAt: new Date(),
+      };
+
       if (cropData?.id) {
-        // Update
         await updateData("cropInfo", cropData.id, dataToSave);
         onUpdate?.({ ...dataToSave, id: cropData.id });
         alert("Crop info updated successfully!");
       } else {
-        // Add new
         await addData("cropInfo", dataToSave);
         alert("Crop info added successfully!");
       }
@@ -104,15 +163,31 @@ function AddCropinfo({ isOpen, onClose, cropData = null, onUpdate }) {
           <div className="space-y-4">
             {[
               { name: "name", label: "Name", placeholder: "Enter crop name" },
-              { name: "scientificName", label: "Scientific Name", placeholder: "Enter scientific name" },
+              {
+                name: "scientificName",
+                label: "Scientific Name",
+                placeholder: "Enter scientific name",
+              },
               { name: "category", label: "Category", placeholder: "Enter category" },
               { name: "season", label: "Season", placeholder: "Enter season" },
               { name: "duration", label: "Duration", placeholder: "Enter Duration" },
               { name: "soilType", label: "Soil Type", placeholder: "Enter Soil Type" },
-              { name: "waterRequirement", label: "Water Requirement", placeholder: "Enter Water Requirement" },
-              { name: "yieldAmount", label: "Yield Amount", placeholder: "Enter Yield Amount" },
-              { name: "marketPrice", label: "Market Price", placeholder: "Enter Market Price" },
-               { name: "url", label: "url", placeholder: "Enter url" },
+              {
+                name: "waterRequirement",
+                label: "Water Requirement",
+                placeholder: "Enter Water Requirement",
+              },
+              {
+                name: "yieldAmount",
+                label: "Yield Amount",
+                placeholder: "Enter Yield Amount",
+              },
+              {
+                name: "marketPrice",
+                label: "Market Price",
+                placeholder: "Enter Market Price",
+              },
+              { name: "url", label: "URL", placeholder: "Enter URL" },
             ].map((field) => (
               <div key={field.name}>
                 <label className="block font-medium">{field.label}</label>
@@ -124,6 +199,20 @@ function AddCropinfo({ isOpen, onClose, cropData = null, onUpdate }) {
                   placeholder={field.placeholder}
                   className="w-full border rounded px-4 py-2"
                 />
+                {errors[field.name] && (
+                  <p className="text-red-500 text-sm">{errors[field.name]}</p>
+                )}
+                {/* URL Live Preview */}
+                {field.name === "url" && formData.url && !errors.url && (
+                  <a
+                    href={formData.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 underline text-sm mt-1 inline-block"
+                  >
+                    Preview Link
+                  </a>
+                )}
               </div>
             ))}
           </div>
@@ -145,8 +234,24 @@ function AddCropinfo({ isOpen, onClose, cropData = null, onUpdate }) {
               Choose Image
             </label>
             <span className="text-sm text-gray-500 mt-2">
-              {image ? image.name : "No image chosen"}
+              {image
+                ? typeof image === "string"
+                  ? "Current Image"
+                  : image.name
+                : "No image chosen"}
             </span>
+            {errors.image && (
+              <p className="text-red-500 text-sm">{errors.image}</p>
+            )}
+
+            {/* Live Image Preview */}
+            {preview && (
+              <img
+                src={preview}
+                alt="Preview"
+                className="mt-4 w-40 h-40 object-cover rounded-md border"
+              />
+            )}
           </div>
         </div>
 
