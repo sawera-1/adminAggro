@@ -15,7 +15,6 @@ import {
 function Setting() {
   const [formData, setFormData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [showPassword, setShowPassword] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
@@ -147,26 +146,7 @@ function Setting() {
                 </div>
               ))}
 
-              {/* Password */}
-              <div className="flex flex-col w-full">
-                <span className="text-gray-500 mb-1">Password</span>
-                <div className="relative w-full">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    value={formData.password || ""}
-                    onChange={handleChange}
-                    className="border border-gray-300 rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-[#006644] w-full"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute top-1/2 right-3 transform -translate-y-1/2 text-[#006644] hover:text-[#004f33] cursor-pointer"
-                  >
-                    {showPassword ? <BsEye size={20} /> : <BsEyeSlash size={20} />}
-                  </button>
-                </div>
-              </div>
+              
             </div>
 
             {/* Logout Button */}
